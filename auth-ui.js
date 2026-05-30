@@ -1,13 +1,13 @@
 // Authentication UI Module for Recomp OS PRO - Email/Password Auth
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { saveData, loadData } from './firebase-config.js';
+// Imports the already-initialized auth instance from firebase-config.js
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { auth, saveData, loadData } from './firebase-config.js';
 
 export function initAuthUI() {
-  const auth = getAuth();
   let currentUser = null;
   let lastSyncTime = null;
 
-  // Create auth UI elements
+  // Create fixed auth container in top right
   const authContainer = document.createElement('div');
   authContainer.id = 'auth-container';
   authContainer.style.cssText = `
@@ -20,19 +20,24 @@ export function initAuthUI() {
     gap: 12px;
   `;
 
-  // Login form container
+  // Login form
   const loginForm = document.createElement('div');
   loginForm.id = 'login-form';
   loginForm.style.cssText = `
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: rgba(26, 31, 58, 0.95);
-    padding: 20px;
+    background: rgba(26, 31, 58, 0.97);
+    padding: 16px;
     border-radius: 12px;
-    border: 1px solid rgba(0, 212, 255, 0.3);
-    min-width: 280px;
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    min-width: 260px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   `;
+
+  const formTitle = document.createElement('div');
+  formTitle.innerHTML = '🔐 Recomp OS Cloud Sync';
+  formTitle.style.cssText = 'color: #00d4ff; font-size: 13px; font-weight: 600; margin-bottom: 4px;';
 
   const emailInput = document.createElement('input');
   emailInput.type = 'email';
@@ -40,261 +45,205 @@ export function initAuthUI() {
   emailInput.style.cssText = `
     padding: 10px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.08);
     color: white;
     font-size: 14px;
+    outline: none;
   `;
 
   const passwordInput = document.createElement('input');
   passwordInput.type = 'password';
-  passwordInput.placeholder = 'Password';
+  passwordInput.placeholder = 'Password (min 6 chars)';
   passwordInput.style.cssText = emailInput.style.cssText;
 
-  const buttonContainer = document.createElement('div');
-  buttonContainer.style.cssText = 'display: flex; gap: 8px;';
+  const statusMsg = document.createElement('div');
+  statusMsg.style.cssText = 'font-size: 11px; color: #ff4444; min-height: 14px; text-align: center;';
+
+  const buttonRow = document.createElement('div');
+  buttonRow.style.cssText = 'display: flex; gap: 8px;';
 
   const loginBtn = document.createElement('button');
   loginBtn.innerHTML = 'Sign In';
   loginBtn.style.cssText = `
-    flex: 1;
-    background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 14px;
+    flex: 1; background: linear-gradient(135deg, #00d4ff, #0099ff);
+    color: white; border: none; padding: 10px; border-radius: 6px;
+    font-weight: 700; cursor: pointer; font-size: 13px;
   `;
-  loginBtn.onclick = () => handleEmailLogin(emailInput.value, passwordInput.value);
+  loginBtn.onclick = () => handleEmailLogin();
 
   const signupBtn = document.createElement('button');
   signupBtn.innerHTML = 'Sign Up';
   signupBtn.style.cssText = `
-    flex: 1;
-    background: rgba(0, 212, 255, 0.2);
-    color: #00d4ff;
-    border: 1px solid #00d4ff;
-    padding: 10px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 14px;
+    flex: 1; background: transparent;
+    color: #00d4ff; border: 1px solid #00d4ff; padding: 10px;
+    border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 13px;
   `;
-  signupBtn.onclick = () => handleEmailSignup(emailInput.value, passwordInput.value);
+  signupBtn.onclick = () => handleEmailSignup();
 
-  buttonContainer.appendChild(loginBtn);
-  buttonContainer.appendChild(signupBtn);
+  buttonRow.appendChild(loginBtn);
+  buttonRow.appendChild(signupBtn);
+  loginForm.appendChild(formTitle);
   loginForm.appendChild(emailInput);
   loginForm.appendChild(passwordInput);
-  loginForm.appendChild(buttonContainer);
+  loginForm.appendChild(statusMsg);
+  loginForm.appendChild(buttonRow);
 
-  // User profile display
-  const userProfile = document.createElement('div');
-  userProfile.id = 'user-profile';
-  userProfile.style.cssText = `
+  // Logged-in panel
+  const userPanel = document.createElement('div');
+  userPanel.id = 'user-panel';
+  userPanel.style.cssText = `
     display: none;
     align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    gap: 10px;
+    background: rgba(26,31,58,0.95);
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,212,255,0.3);
   `;
 
-  const syncStatus = document.createElement('div');
-  syncStatus.id = 'sync-status';
-  syncStatus.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #00ff00;
-  `;
-  syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;"></span>Synced';
+  const syncDot = document.createElement('span');
+  syncDot.style.cssText = 'width:8px;height:8px;background:#00ff00;border-radius:50%;display:inline-block;';
+
+  const syncLabel = document.createElement('span');
+  syncLabel.style.cssText = 'font-size: 12px; color: #00ff00;';
+  syncLabel.textContent = 'Synced';
 
   const syncBtn = document.createElement('button');
   syncBtn.innerHTML = '🔄';
+  syncBtn.title = 'Sync now';
   syncBtn.style.cssText = `
-    background: rgba(0, 212, 255, 0.2);
-    color: #00d4ff;
-    border: 1px solid #00d4ff;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
+    background: rgba(0,212,255,0.15); color: #00d4ff;
+    border: 1px solid #00d4ff; padding: 5px 10px;
+    border-radius: 6px; cursor: pointer; font-size: 13px;
   `;
   syncBtn.onclick = handleManualSync;
 
   const logoutBtn = document.createElement('button');
   logoutBtn.innerHTML = '🚪';
+  logoutBtn.title = 'Sign out';
   logoutBtn.style.cssText = `
-    background: rgba(255, 0, 0, 0.2);
-    color: #ff4444;
-    border: 1px solid #ff4444;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
+    background: rgba(255,0,0,0.15); color: #ff4444;
+    border: 1px solid #ff4444; padding: 5px 10px;
+    border-radius: 6px; cursor: pointer; font-size: 13px;
   `;
-  logoutBtn.onclick = handleLogout;
+  logoutBtn.onclick = () => signOut(auth);
 
-  userProfile.appendChild(syncStatus);
-  userProfile.appendChild(syncBtn);
-  userProfile.appendChild(logoutBtn);
+  userPanel.appendChild(syncDot);
+  userPanel.appendChild(syncLabel);
+  userPanel.appendChild(syncBtn);
+  userPanel.appendChild(logoutBtn);
 
   authContainer.appendChild(loginForm);
-  authContainer.appendChild(userProfile);
+  authContainer.appendChild(userPanel);
   document.body.appendChild(authContainer);
 
-  // Auth state listener
+  // Auth state observer
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
       loginForm.style.display = 'none';
-      userProfile.style.display = 'flex';
+      userPanel.style.display = 'flex';
+      syncLabel.textContent = 'Loading...';
       await loadCloudData();
+      syncLabel.textContent = 'Synced';
       startAutoSync();
     } else {
       loginForm.style.display = 'flex';
-      userProfile.style.display = 'none';
+      userPanel.style.display = 'none';
       stopAutoSync();
     }
   });
 
-  // Email signup handler
-  async function handleEmailSignup(email, password) {
-    if (!email || !password) {
-      alert('Please enter email and password');
-      return;
-    }
-    if (password.length < 6) {
-      alert('Password must be at least 6 characters');
-      return;
-    }
+  async function handleEmailSignup() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    if (!email || !password) { statusMsg.textContent = 'Enter email and password.'; return; }
+    if (password.length < 6) { statusMsg.textContent = 'Password must be 6+ characters.'; return; }
     try {
-      signupBtn.innerHTML = '⏳';
+      signupBtn.textContent = '...';
       signupBtn.disabled = true;
+      statusMsg.style.color = '#00d4ff';
+      statusMsg.textContent = 'Creating account...';
       await createUserWithEmailAndPassword(auth, email, password);
-      alert('Account created! You are now signed in.');
-    } catch (error) {
-      console.error('Signup error:', error);
-      alert('Signup failed: ' + error.message);
+      statusMsg.textContent = '';
+    } catch (err) {
+      statusMsg.style.color = '#ff4444';
+      statusMsg.textContent = err.message.replace('Firebase: ', '').replace(/ \(auth.*\)/, '');
     } finally {
-      signupBtn.innerHTML = 'Sign Up';
+      signupBtn.textContent = 'Sign Up';
       signupBtn.disabled = false;
     }
   }
 
-  // Email login handler
-  async function handleEmailLogin(email, password) {
-    if (!email || !password) {
-      alert('Please enter email and password');
-      return;
-    }
+  async function handleEmailLogin() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    if (!email || !password) { statusMsg.textContent = 'Enter email and password.'; return; }
     try {
-      loginBtn.innerHTML = '⏳';
+      loginBtn.textContent = '...';
       loginBtn.disabled = true;
+      statusMsg.style.color = '#00d4ff';
+      statusMsg.textContent = 'Signing in...';
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Login failed: ' + error.message);
+      statusMsg.textContent = '';
+    } catch (err) {
+      statusMsg.style.color = '#ff4444';
+      statusMsg.textContent = err.message.replace('Firebase: ', '').replace(/ \(auth.*\)/, '');
     } finally {
-      loginBtn.innerHTML = 'Sign In';
+      loginBtn.textContent = 'Sign In';
       loginBtn.disabled = false;
     }
   }
 
-  // Logout handler
-  async function handleLogout() {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  }
-
-  // Manual sync handler
   async function handleManualSync() {
     if (!currentUser) return;
     syncBtn.innerHTML = '⏳';
     syncBtn.disabled = true;
     try {
       await saveCloudData();
-      syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;"></span>Synced!';
-      setTimeout(() => {
-        syncBtn.innerHTML = '🔄';
-        syncBtn.disabled = false;
-      }, 1000);
-    } catch (error) {
-      console.error('Sync failed:', error);
-      syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#ff0000;border-radius:50%;"></span>Error';
+      syncLabel.textContent = 'Synced!';
+      setTimeout(() => { syncLabel.textContent = 'Synced'; }, 2000);
+    } catch (e) {
+      syncLabel.textContent = 'Sync error';
+    } finally {
       syncBtn.innerHTML = '🔄';
       syncBtn.disabled = false;
     }
   }
 
-  // Load data from cloud
   async function loadCloudData() {
     if (!currentUser) return;
     try {
-      const cloudData = await loadData(currentUser.uid);
-      if (cloudData) {
-        Object.keys(cloudData).forEach(key => {
-          localStorage.setItem(key, cloudData[key]);
-        });
-        console.log('Cloud data loaded');
+      const data = await loadData(currentUser.uid);
+      if (data) {
+        Object.keys(data).forEach(k => localStorage.setItem(k, data[k]));
         lastSyncTime = new Date();
       }
-    } catch (error) {
-      console.error('Failed to load cloud data:', error);
-    }
+    } catch (e) { console.error('Load error:', e); }
   }
 
-  // Save data to cloud
   async function saveCloudData() {
     if (!currentUser) return;
-    try {
-      const dataToSync = {};
-      const keys = ['nutrition', 'training', 'checklist', 'photos', 'analytics'];
-      keys.forEach(key => {
-        const value = localStorage.getItem(key);
-        if (value) dataToSync[key] = value;
-      });
-      
-      await saveData(currentUser.uid, dataToSync);
-      lastSyncTime = new Date();
-      console.log('Data synced to cloud');
-    } catch (error) {
-      console.error('Failed to save to cloud:', error);
-      throw error;
-    }
+    const keys = ['nutrition', 'training', 'checklist', 'photos', 'analytics', 'recomp_data'];
+    const data = {};
+    keys.forEach(k => { const v = localStorage.getItem(k); if (v) data[k] = v; });
+    await saveData(currentUser.uid, data);
+    lastSyncTime = new Date();
   }
 
-  // Auto-sync every 5 minutes
   let autoSyncInterval;
   function startAutoSync() {
     stopAutoSync();
     autoSyncInterval = setInterval(async () => {
-      try {
-        await saveCloudData();
-        const ago = lastSyncTime ? Math.floor((new Date() - lastSyncTime) / 60000) + 'm ago' : '';
-        syncStatus.innerHTML = `<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;"></span>${ago}`;
-      } catch (error) {
-        console.error('Auto-sync failed:', error);
-      }
+      try { await saveCloudData(); syncLabel.textContent = 'Synced'; } catch (e) {}
     }, 5 * 60 * 1000);
   }
-
   function stopAutoSync() {
-    if (autoSyncInterval) {
-      clearInterval(autoSyncInterval);
-      autoSyncInterval = null;
-    }
+    if (autoSyncInterval) { clearInterval(autoSyncInterval); autoSyncInterval = null; }
   }
 
   window.syncToCloud = saveCloudData;
 }
 
-export { initAuthUI as default };
+export default initAuthUI;
