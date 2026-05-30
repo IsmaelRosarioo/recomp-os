@@ -748,11 +748,16 @@
   <script src="training.js"></script>
   <script src="checklist.js"></script>
   <script src="pro-features.js"></script>
+  <script src="auth-ui.js"></script>
   
   <script>
     // Initialize Pro Features on page load
     document.addEventListener('DOMContentLoaded', () => {
       console.log('Initializing Pro features...');
+          // Initialize auth UI
+    import('./auth-ui.js').then(module => {
+      module.initAuthUI();
+    });
       
       // Render each Pro module into its container
       const nutritionContainer = document.querySelector('[c-eliveTab="nutrition"] .card');
