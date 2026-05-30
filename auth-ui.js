@@ -1,7 +1,9 @@
-// Authentication UI Module for Recomp OS PRO
-import { loginWithGoogle, logout, onAuthChange, saveData, loadData } from './firebase-config.js';
+// Authentication UI Module for Recomp OS PRO - Email/Password Auth
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { saveData, loadData } from './firebase-config.js';
 
 export function initAuthUI() {
+  const auth = getAuth();
   let currentUser = null;
   let lastSyncTime = null;
 
@@ -18,24 +20,75 @@ export function initAuthUI() {
     gap: 12px;
   `;
 
-  // Login button
+  // Login form container
+  const loginForm = document.createElement('div');
+  loginForm.id = 'login-form';
+  loginForm.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(26, 31, 58, 0.95);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    min-width: 280px;
+  `;
+
+  const emailInput = document.createElement('input');
+  emailInput.type = 'email';
+  emailInput.placeholder = 'Email';
+  emailInput.style.cssText = `
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
+  `;
+
+  const passwordInput = document.createElement('input');
+  passwordInput.type = 'password';
+  passwordInput.placeholder = 'Password';
+  passwordInput.style.cssText = emailInput.style.cssText;
+
+  const buttonContainer = document.createElement('div');
+  buttonContainer.style.cssText = 'display: flex; gap: 8px;';
+
   const loginBtn = document.createElement('button');
-  loginBtn.id = 'login-btn';
-  loginBtn.innerHTML = '🔐 Sign In with Google';
+  loginBtn.innerHTML = 'Sign In';
   loginBtn.style.cssText = `
+    flex: 1;
     background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 10px;
+    border-radius: 6px;
     font-weight: 600;
     cursor: pointer;
     font-size: 14px;
-    transition: transform 0.2s;
   `;
-  loginBtn.onmouseover = () => loginBtn.style.transform = 'scale(1.05)';
-  loginBtn.onmouseout = () => loginBtn.style.transform = 'scale(1)';
-  loginBtn.onclick = handleLogin;
+  loginBtn.onclick = () => handleEmailLogin(emailInput.value, passwordInput.value);
+
+  const signupBtn = document.createElement('button');
+  signupBtn.innerHTML = 'Sign Up';
+  signupBtn.style.cssText = `
+    flex: 1;
+    background: rgba(0, 212, 255, 0.2);
+    color: #00d4ff;
+    border: 1px solid #00d4ff;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+  `;
+  signupBtn.onclick = () => handleEmailSignup(emailInput.value, passwordInput.value);
+
+  buttonContainer.appendChild(loginBtn);
+  buttonContainer.appendChild(signupBtn);
+  loginForm.appendChild(emailInput);
+  loginForm.appendChild(passwordInput);
+  loginForm.appendChild(buttonContainer);
 
   // User profile display
   const userProfile = document.createElement('div');
@@ -50,7 +103,6 @@ export function initAuthUI() {
     border: 1px solid rgba(255, 255, 255, 0.2);
   `;
 
-  // Sync status indicator
   const syncStatus = document.createElement('div');
   syncStatus.id = 'sync-status';
   syncStatus.style.cssText = `
@@ -60,11 +112,10 @@ export function initAuthUI() {
     font-size: 12px;
     color: #00ff00;
   `;
-  syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;animation:pulse 2s infinite;"></span>Synced';
+  syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;"></span>Synced';
 
-  // Sync now button
   const syncBtn = document.createElement('button');
-  syncBtn.innerHTML = '🔄 Sync';
+  syncBtn.innerHTML = '🔄';
   syncBtn.style.cssText = `
     background: rgba(0, 212, 255, 0.2);
     color: #00d4ff;
@@ -76,9 +127,8 @@ export function initAuthUI() {
   `;
   syncBtn.onclick = handleManualSync;
 
-  // Logout button
   const logoutBtn = document.createElement('button');
-  logoutBtn.innerHTML = '🚪 Logout';
+  logoutBtn.innerHTML = '🚪';
   logoutBtn.style.cssText = `
     background: rgba(255, 0, 0, 0.2);
     color: #ff4444;
@@ -94,35 +144,64 @@ export function initAuthUI() {
   userProfile.appendChild(syncBtn);
   userProfile.appendChild(logoutBtn);
 
-  authContainer.appendChild(loginBtn);
+  authContainer.appendChild(loginForm);
   authContainer.appendChild(userProfile);
   document.body.appendChild(authContainer);
 
   // Auth state listener
-  onAuthChange(async (user) => {
+  onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     if (user) {
-      loginBtn.style.display = 'none';
+      loginForm.style.display = 'none';
       userProfile.style.display = 'flex';
       await loadCloudData();
       startAutoSync();
     } else {
-      loginBtn.style.display = 'block';
+      loginForm.style.display = 'flex';
       userProfile.style.display = 'none';
       stopAutoSync();
     }
   });
 
-  // Login handler
-  async function handleLogin() {
+  // Email signup handler
+  async function handleEmailSignup(email, password) {
+    if (!email || !password) {
+      alert('Please enter email and password');
+      return;
+    }
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
     try {
-      loginBtn.innerHTML = '⏳ Signing in...';
-      loginBtn.disabled = true;
-      await loginWithGoogle();
+      signupBtn.innerHTML = '⏳';
+      signupBtn.disabled = true;
+      await createUserWithEmailAndPassword(auth, email, password);
+      alert('Account created! You are now signed in.');
     } catch (error) {
-      console.error('Login failed:', error);
-      alert('Login failed. Please try again.');
-      loginBtn.innerHTML = '🔐 Sign In with Google';
+      console.error('Signup error:', error);
+      alert('Signup failed: ' + error.message);
+    } finally {
+      signupBtn.innerHTML = 'Sign Up';
+      signupBtn.disabled = false;
+    }
+  }
+
+  // Email login handler
+  async function handleEmailLogin(email, password) {
+    if (!email || !password) {
+      alert('Please enter email and password');
+      return;
+    }
+    try {
+      loginBtn.innerHTML = '⏳';
+      loginBtn.disabled = true;
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed: ' + error.message);
+    } finally {
+      loginBtn.innerHTML = 'Sign In';
       loginBtn.disabled = false;
     }
   }
@@ -130,28 +209,28 @@ export function initAuthUI() {
   // Logout handler
   async function handleLogout() {
     try {
-      await logout();
+      await signOut(auth);
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Logout error:', error);
     }
   }
 
   // Manual sync handler
   async function handleManualSync() {
     if (!currentUser) return;
-    syncBtn.innerHTML = '⏳ Syncing...';
+    syncBtn.innerHTML = '⏳';
     syncBtn.disabled = true;
     try {
       await saveCloudData();
-      syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;"></span>Synced just now';
+      syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;"></span>Synced!';
       setTimeout(() => {
-        syncBtn.innerHTML = '🔄 Sync';
+        syncBtn.innerHTML = '🔄';
         syncBtn.disabled = false;
       }, 1000);
     } catch (error) {
       console.error('Sync failed:', error);
-      syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#ff0000;border-radius:50%;"></span>Sync failed';
-      syncBtn.innerHTML = '🔄 Sync';
+      syncStatus.innerHTML = '<span style="width:8px;height:8px;background:#ff0000;border-radius:50%;"></span>Error';
+      syncBtn.innerHTML = '🔄';
       syncBtn.disabled = false;
     }
   }
@@ -162,11 +241,10 @@ export function initAuthUI() {
     try {
       const cloudData = await loadData(currentUser.uid);
       if (cloudData) {
-        // Merge cloud data with local data
         Object.keys(cloudData).forEach(key => {
           localStorage.setItem(key, cloudData[key]);
         });
-        console.log('Cloud data loaded successfully');
+        console.log('Cloud data loaded');
         lastSyncTime = new Date();
       }
     } catch (error) {
@@ -178,7 +256,6 @@ export function initAuthUI() {
   async function saveCloudData() {
     if (!currentUser) return;
     try {
-      // Get all relevant data from localStorage
       const dataToSync = {};
       const keys = ['nutrition', 'training', 'checklist', 'photos', 'analytics'];
       keys.forEach(key => {
@@ -202,11 +279,12 @@ export function initAuthUI() {
     autoSyncInterval = setInterval(async () => {
       try {
         await saveCloudData();
-        syncStatus.innerHTML = `<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;"></span>Synced ${getTimeAgo(lastSyncTime)}`;
+        const ago = lastSyncTime ? Math.floor((new Date() - lastSyncTime) / 60000) + 'm ago' : '';
+        syncStatus.innerHTML = `<span style="width:8px;height:8px;background:#00ff00;border-radius:50%;"></span>${ago}`;
       } catch (error) {
         console.error('Auto-sync failed:', error);
       }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 5 * 60 * 1000);
   }
 
   function stopAutoSync() {
@@ -216,19 +294,7 @@ export function initAuthUI() {
     }
   }
 
-  function getTimeAgo(date) {
-    if (!date) return '';
-    const seconds = Math.floor((new Date() - date) / 1000);
-    if (seconds < 60) return 'just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
-  }
-
-  // Expose sync function globally
   window.syncToCloud = saveCloudData;
 }
 
-// Export for use in other modules
 export { initAuthUI as default };
