@@ -8,12 +8,13 @@ import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstat
 // Firebase config - You'll need to create a FREE Firebase project
 // Visit: https://console.firebase.google.com/
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "recomp-os.firebaseapp.com",
-  projectId: "recomp-os",
-  storageBucket: "recomp-os.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBi5dnLEgVRXMRRQhY2NrVxkiJARUBIIgJI",
+  authDomain: "recomp-os-pro.firebaseapp.com",
+  projectId: "recomp-os-pro",
+  storageBucket: "recomp-os-pro.firebasestorage.app",
+  messagingSenderId: "575258849438",
+  appId: "1:575258849438:web:2c0c2dff01ba042591d4b8f",
+  measurementId: "G-Y9MEZTRPRM"
 };
 
 // Initialize Firebase
@@ -49,11 +50,8 @@ export const onAuthChange = (callback) => {
 // Cloud Sync Functions
 export const saveData = async (userId, data) => {
   try {
-    await setDoc(doc(db, 'users', userId), {
-      data: data,
-      lastModified: new Date().toISOString()
-    });
-    console.log('Data synced to cloud');
+    await setDoc(doc(db, 'users', userId), data, { merge: true });
+    return true;
   } catch (error) {
     console.error('Save error:', error);
     throw error;
@@ -62,29 +60,20 @@ export const saveData = async (userId, data) => {
 
 export const loadData = async (userId) => {
   try {
-    const docRef = doc(db, 'users', userId);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists()) {
-      return docSnap.data().data;
-    } else {
-      console.log('No cloud data found');
-      return null;
-    }
+    const docSnap = await getDoc(doc(db, 'users', userId));
+    return docSnap.exists() ? docSnap.data() : null;
   } catch (error) {
     console.error('Load error:', error);
     throw error;
   }
 };
 
-export const syncRealtime = (userId, callback) => {
-  const docRef = doc(db, 'users', userId);
-  return onSnapshot(docRef, (doc) => {
+export const onDataChange = (userId, callback) => {
+  return onSnapshot(doc(db, 'users', userId), (doc) => {
     if (doc.exists()) {
-      callback(doc.data().data);
+      callback(doc.data());
     }
   });
 };
 
-// Export auth and db for use in other files
 export { auth, db };
