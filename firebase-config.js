@@ -8,7 +8,7 @@ import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstat
 // Firebase config - You'll need to create a FREE Firebase project
 // Visit: https://console.firebase.google.com/
 const firebaseConfig = {
-  apiKey: "AIzaSyBi5dnLEgVRXMRRQhY2NrVxkiJARUBIIgJI",
+    apiKey: "AIzaSyBI5dNLEgvRXMRROHr2NV9ksIARDBIlgJI",
   authDomain: "recomp-os-pro.firebaseapp.com",
   projectId: "recomp-os-pro",
   storageBucket: "recomp-os-pro.firebasestorage.app",
