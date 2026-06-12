@@ -169,7 +169,7 @@ export function initAuthUI() {
       statusMsg.textContent = '';
     } catch (err) {
       statusMsg.style.color = '#ff4444';
-      statusMsg.textContent = err.message.replace('Firebase: ', '').replace(/ \(auth.*\)/, '');
+      statusMsg.textContent = ({ 'auth/email-already-in-use': 'Email already registered — try Sign In.', 'auth/invalid-email': 'Invalid email address.', 'auth/weak-password': 'Password too weak (min 6 chars).', 'auth/user-not-found': 'No account found. Try Sign Up.', 'auth/wrong-password': 'Wrong password — try again.', 'auth/too-many-requests': 'Too many attempts. Try again later.', 'auth/network-request-failed': 'Network error. Check your connection.' }[err.code] || err.message.replace('Firebase: ', '').replace(/ \(auth\/.*?\)\.?/, '') || err.code('Firebase: ', '').replace(/ \(auth.*\)/, '');
     } finally {
       signupBtn.textContent = 'Sign Up';
       signupBtn.disabled = false;
@@ -189,7 +189,7 @@ export function initAuthUI() {
       statusMsg.textContent = '';
     } catch (err) {
       statusMsg.style.color = '#ff4444';
-      statusMsg.textContent = err.message.replace('Firebase: ', '').replace(/ \(auth.*\)/, '');
+      statusMsg.textContent = ({ 'auth/email-already-in-use': 'Email already registered — try Sign In.', 'auth/invalid-email': 'Invalid email address.', 'auth/weak-password': 'Password too weak (min 6 chars).', 'auth/user-not-found': 'No account found. Try Sign Up.', 'auth/wrong-password': 'Wrong password — try again.', 'auth/too-many-requests': 'Too many attempts. Try again later.', 'auth/network-request-failed': 'Network error. Check your connection.' }[err.code] || err.message.replace('Firebase: ', '').replace(/ \(auth\/.*?\)\.?/, '') || err.code('Firebase: ', '').replace(/ \(auth.*\)/, '');
     } finally {
       loginBtn.textContent = 'Sign In';
       loginBtn.disabled = false;
