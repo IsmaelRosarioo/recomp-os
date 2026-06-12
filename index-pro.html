@@ -755,14 +755,9 @@
     document.addEventListener('DOMContentLoaded', () => {
       console.log('Initializing Pro features...');
           // Initialize auth UI
-    import('./auth-ui.js').then(module => {
-      module.initAuthUI();
-    });
+              // Auth UI is initialized via type=module script tag});
       
-      // Render each Pro module into its container
-      const nutritionContainer = document.querySelector('[c-eliveTab="nutrition"] .card');
-      const trainingContainer = document.querySelector('[c-eliveTab="training"] .card');
-      const forecastContainer = document.querySelector('[c-eliveTab="forecast"] .card');
+                          const forecastContainer = document.querySelector('[c-eliveTab="forecast"] .card');
       const checklistContainer = document.querySelector('[c-eliveTab="checklist"] .card');
       
       if (nutritionContainer) {
