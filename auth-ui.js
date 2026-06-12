@@ -4,12 +4,12 @@
 
 (function() {
   var FIREBASE_CONFIG = {
-    apiKey: "AIzaSyBI5dNLEgvRXMRROHr2NV9ksIARDBIlgJI",
+        apiKey: "AIzaSyBi5dNLEgvRXMRROHr2NV9ksiARDBIIgJI",
     authDomain: "recomp-os-pro.firebaseapp.com",
     projectId: "recomp-os-pro",
     storageBucket: "recomp-os-pro.firebasestorage.app",
-    messagingSenderId: "157525884043",
-    appId: "1:157525884043:web:2c0c2dff81ba04259104b0f"
+        messagingSenderId: "575258849438",
+        appId: "1:575258849438:web:2c0c2df01ba61425914b8f"
   };
 
   var ERROR_MAP = {
