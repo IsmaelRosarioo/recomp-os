@@ -23,10 +23,9 @@
     'auth/invalid-credential': 'Wrong email or password — try again.'
   };
 
-  function friendlyError(err) {
-    return ERROR_MAP[err.code] ||
-      (err.message || '').replace('Firebase: ', '').replace(/ \(auth\/.*?\)\.?/, '') ||
-      'An error occurred.';
+function friendlyError(err) {
+    console.error('Auth error:', err.code, err.message);
+    return ERROR_MAP[err.code] || err.message || err.code || 'Auth error - check console';
   }
 
   function initAuthUI() {
