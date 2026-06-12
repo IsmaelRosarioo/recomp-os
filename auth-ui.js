@@ -1,13 +1,28 @@
 // Authentication UI Module for Recomp OS PRO - Email/Password Auth
-// Imports the already-initialized auth instance from firebase-config.js
-// Uses Firebase compat SDK (loaded via script tags) // import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-// Uses Fireba// Compat SDK: firebase.auth() used directlyse compat SDK (loaded via script tags) // import { createUserWithEmailAndPassword
-
+// Uses Firebase compat SDK (loaded via script tags in index-pro.html)
 export function initAuthUI() {
   let currentUser = null;
+  let autoSyncInterval = null;
   let lastSyncTime = null;
 
-  // Create fixed auth container in top right
+  const ERROR_MAP = {
+    'auth/email-already-in-use': 'Email already registered — try Sign In.',
+    'auth/invalid-email': 'Invalid email address.',
+    'auth/weak-password': 'Password too weak (min 6 chars).',
+    'auth/user-not-found': 'No account found. Try Sign Up.',
+    'auth/wrong-password': 'Wrong password — try again.',
+    'auth/too-many-requests': 'Too many attempts. Try again later.',
+    'auth/network-request-failed': 'Network error. Check your connection.'
+  };
+
+  function friendlyError(err) {
+    return ERROR_MAP[err.code] ||
+      (err.message || '').replace('Firebase: ', '').replace(/ \(auth\/.*?\)\.?/, '') ||
+      err.code ||
+      'An error occurred.';
+  }
+
+  // Auth container
   const authContainer = document.createElement('div');
   authContainer.id = 'auth-container';
   authContainer.style.cssText = `
@@ -43,13 +58,10 @@ export function initAuthUI() {
   emailInput.type = 'email';
   emailInput.placeholder = 'Email';
   emailInput.style.cssText = `
-    padding: 10px;
-    border-radius: 6px;
+    padding: 10px; border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.15);
     background: rgba(255,255,255,0.08);
-    color: white;
-    font-size: 14px;
-    outline: none;
+    color: white; font-size: 14px; outline: none;
   `;
 
   const passwordInput = document.createElement('input');
@@ -139,7 +151,7 @@ export function initAuthUI() {
   document.body.appendChild(authContainer);
 
   // Auth state observer
-  firebase.auth().onAuthStateChanged( async (user) => {
+  firebase.auth().onAuthStateChanged(async (user) => {
     currentUser = user;
     if (user) {
       loginForm.style.display = 'none';
@@ -169,9 +181,11 @@ export function initAuthUI() {
       statusMsg.textContent = '';
     } catch (err) {
       statusMsg.style.color = '#ff4444';
-              statusMsg.textContent = ({ 'auth/email-already-in-use': 'Email already registered — try Sign In.', 'auth/invalid-email': 'Invalid email address.', 'auth/weak-password': 'Password too weak (min 6 chars).', 'auth/user-not-found': 'No account found. Try Sign Up.', 'auth/wrong-password': 'Wrong password — try again.', 'auth/too-many-requests': 'Too many attempts. Try again later.', 'auth/network-request-failed': 'Network error. Check your connection.' }[err.code] || err.message.replace('Firebase: ', '').replace(/ \(auth\/.*?\)\.?/, '') || err.code;
+      statusMsg.textContent = friendlyError(err);
     } finally {
       signupBtn.textContent = 'Sign Up';
+      signupBtn.disabled = false;
+    }
   }
 
   async function handleEmailLogin() {
@@ -187,7 +201,7 @@ export function initAuthUI() {
       statusMsg.textContent = '';
     } catch (err) {
       statusMsg.style.color = '#ff4444';
-              statusMsg.textContent = ({ 'auth/email-already-in-use': 'Email already registered — try Sign In.', 'auth/invalid-email': 'Invalid email address.', 'auth/weak-password': 'Password too weak (min 6 chars).', 'auth/user-not-found': 'No account found. Try Sign Up.', 'auth/wrong-password': 'Wrong password — try again.', 'auth/too-many-requests': 'Too many attempts. Try again later.', 'auth/network-request-failed': 'Network error. Check your connection.' }[err.code] || err.message.replace('Firebase: ', '').replace(/ \(auth\/.*?\)\.?/, '') || err.code;
+      statusMsg.textContent = friendlyError(err);
     } finally {
       loginBtn.textContent = 'Sign In';
       loginBtn.disabled = false;
@@ -213,12 +227,15 @@ export function initAuthUI() {
   async function loadCloudData() {
     if (!currentUser) return;
     try {
-      const snap = await firebase.firestore().collection('users').doc(currentUser.uid).get(); const data = snap.exists ? snap.data() : null;
+      const snap = await firebase.firestore().collection('users').doc(currentUser.uid).get();
+      const data = snap.exists ? snap.data() : null;
       if (data) {
         Object.keys(data).forEach(k => localStorage.setItem(k, data[k]));
         lastSyncTime = new Date();
       }
-    } catch (e) { console.error('Load error:', e); }
+    } catch (e) {
+      console.error('Load error:', e);
+    }
   }
 
   async function saveCloudData() {
@@ -230,13 +247,13 @@ export function initAuthUI() {
     lastSyncTime = new Date();
   }
 
-  let autoSyncInterval;
   function startAutoSync() {
     stopAutoSync();
     autoSyncInterval = setInterval(async () => {
       try { await saveCloudData(); syncLabel.textContent = 'Synced'; } catch (e) {}
     }, 5 * 60 * 1000);
   }
+
   function stopAutoSync() {
     if (autoSyncInterval) { clearInterval(autoSyncInterval); autoSyncInterval = null; }
   }
@@ -245,5 +262,6 @@ export function initAuthUI() {
 }
 
 export default initAuthUI;
+
 // Auto-initialize when loaded as a module
 initAuthUI();
