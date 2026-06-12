@@ -21,6 +21,7 @@
     'auth/too-many-requests': 'Too many attempts. Try again later.',
     'auth/network-request-failed': 'Network error. Check your connection.',
     'auth/invalid-credential': 'Wrong email or password — try again.'
+        'auth/invalid-login-credentials': 'Wrong email or password — try again.'
   };
 
 function friendlyError(err) {
