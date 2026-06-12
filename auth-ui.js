@@ -247,3 +247,5 @@ export function initAuthUI() {
 }
 
 export default initAuthUI;
+// Auto-initialize when loaded as a module
+initAuthUI();
