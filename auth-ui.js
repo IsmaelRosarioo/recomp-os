@@ -1,7 +1,7 @@
 // Authentication UI Module for Recomp OS PRO - Email/Password Auth
 // Imports the already-initialized auth instance from firebase-config.js
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { auth, saveData, loadData } from './firebase-config.js';
+// Uses Firebase compat SDK (loaded via script tags) // import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+// Uses Fireba// Compat SDK: firebase.auth() used directlyse compat SDK (loaded via script tags) // import { createUserWithEmailAndPassword
 
 export function initAuthUI() {
   let currentUser = null;
@@ -127,7 +127,7 @@ export function initAuthUI() {
     border: 1px solid #ff4444; padding: 5px 10px;
     border-radius: 6px; cursor: pointer; font-size: 13px;
   `;
-  logoutBtn.onclick = () => signOut(auth);
+  logoutBtn.onclick = () => firebase.auth().signOut();
 
   userPanel.appendChild(syncDot);
   userPanel.appendChild(syncLabel);
@@ -139,7 +139,7 @@ export function initAuthUI() {
   document.body.appendChild(authContainer);
 
   // Auth state observer
-  onAuthStateChanged(auth, async (user) => {
+  firebase.auth().onAuthStateChanged( async (user) => {
     currentUser = user;
     if (user) {
       loginForm.style.display = 'none';
@@ -165,7 +165,7 @@ export function initAuthUI() {
       signupBtn.disabled = true;
       statusMsg.style.color = '#00d4ff';
       statusMsg.textContent = 'Creating account...';
-      await createUserWithEmailAndPassword(auth, email, password);
+      await firebase.auth().createUserWithEmailAndPassword(email, password);
       statusMsg.textContent = '';
     } catch (err) {
       statusMsg.style.color = '#ff4444';
@@ -185,7 +185,7 @@ export function initAuthUI() {
       loginBtn.disabled = true;
       statusMsg.style.color = '#00d4ff';
       statusMsg.textContent = 'Signing in...';
-      await signInWithEmailAndPassword(auth, email, password);
+      await firebase.auth().signInWithEmailAndPassword(email, password);
       statusMsg.textContent = '';
     } catch (err) {
       statusMsg.style.color = '#ff4444';
@@ -215,7 +215,7 @@ export function initAuthUI() {
   async function loadCloudData() {
     if (!currentUser) return;
     try {
-      const data = await loadData(currentUser.uid);
+      const snap = await firebase.firestore().collection('users').doc(currentUser.uid).get(); const data = snap.exists ? snap.data() : null;
       if (data) {
         Object.keys(data).forEach(k => localStorage.setItem(k, data[k]));
         lastSyncTime = new Date();
@@ -228,7 +228,7 @@ export function initAuthUI() {
     const keys = ['nutrition', 'training', 'checklist', 'photos', 'analytics', 'recomp_data'];
     const data = {};
     keys.forEach(k => { const v = localStorage.getItem(k); if (v) data[k] = v; });
-    await saveData(currentUser.uid, data);
+    await firebase.firestore().collection('users').doc(currentUser.uid).set(data, { merge: true });
     lastSyncTime = new Date();
   }
 
