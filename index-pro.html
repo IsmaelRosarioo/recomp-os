@@ -726,7 +726,7 @@
 
           <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button className="btn" onClick={exportData}>📥 Export Data</button>
-            <button className="btn btn-secondary" onClick={() => alert('Cloud sync coming soon!')}>☁️ Cloud Sync</button>
+            <button className="btn btn-secondary" onClick={() => window.syncToCloud()}>☁️ Cloud Sync</button>
           </div>
         </div>
       );
