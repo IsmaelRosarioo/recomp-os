@@ -39,13 +39,32 @@
     return ERROR_MAP[err.code] || err.message || 'Auth error - check console';
   }
 
+  function getFirebaseConfig() {
+    if (typeof window !== 'undefined' && window.RECOMP_FIREBASE_CONFIG && Object.keys(window.RECOMP_FIREBASE_CONFIG).length) {
+      return window.RECOMP_FIREBASE_CONFIG;
+    }
+    return {
+      apiKey: process.env && process.env.FIREBASE_API_KEY ? process.env.FIREBASE_API_KEY : '',
+      authDomain: process.env && process.env.FIREBASE_AUTH_DOMAIN ? process.env.FIREBASE_AUTH_DOMAIN : '',
+      projectId: process.env && process.env.FIREBASE_PROJECT_ID ? process.env.FIREBASE_PROJECT_ID : '',
+      storageBucket: process.env && process.env.FIREBASE_STORAGE_BUCKET ? process.env.FIREBASE_STORAGE_BUCKET : '',
+      messagingSenderId: process.env && process.env.FIREBASE_MESSAGING_SENDER_ID ? process.env.FIREBASE_MESSAGING_SENDER_ID : '',
+      appId: process.env && process.env.FIREBASE_APP_ID ? process.env.FIREBASE_APP_ID : ''
+    };
+  }
+
   function initAuthUI() {
     if (typeof firebase === 'undefined') {
       console.error('Firebase compat SDK not loaded');
       return;
     }
+    const config = getFirebaseConfig();
+    if (!config.apiKey) {
+      console.error('Firebase config missing');
+      return;
+    }
     if (!firebase.apps.length) {
-      firebase.initializeApp(FIREBASE_CONFIG);
+      firebase.initializeApp(config);
     }
 
     let currentUser = null;
