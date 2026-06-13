@@ -25,13 +25,13 @@
 
   // All localStorage keys used by Recomp OS modules
   const SYNC_KEYS = [
-    'recomp_data',      // Today tab - weight, sleep, steps, water
-    'nutritionData',    // Nutrition tracker
-    'trainingLog',      // Training log
-    'checklist',        // Daily checklist
-    'photos',           // Progress photos
-    'calendar',         // Calendar
-    'bodyStats'         // Analytics/Forecast
+    'recompOSProData',
+    'nutritionData',
+    'trainingLog',
+    'checklist',
+    'photos',
+    'calendar',
+    'bodyStats'
   ];
 
   function friendlyError(err) {
@@ -137,7 +137,10 @@
     loginBtn.addEventListener('click', handleEmailLogin);
     signupBtn.addEventListener('click', handleEmailSignup);
     syncBtn.addEventListener('click', handleManualSync);
-    logoutBtn.addEventListener('click', () => firebase.auth().signOut());
+    logoutBtn.addEventListener('click', () => {
+      SYNC_KEYS.forEach(k => localStorage.removeItem(k));
+      firebase.auth().signOut();
+    });
     forgotBtn.addEventListener('click', handleForgotPassword);
 
     // Auth state
