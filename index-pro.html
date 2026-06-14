@@ -329,6 +329,13 @@
           { name: 'SHBG', value: '18 nmol/L', date: '2026-06-15', range: '10-57' },
         ],
         notes: 'Log blood pressure, mood, libido, pump quality, joint pain, etc.',
+        protocolEditing: false,
+        cycleStart: '2025-06-08',
+        weeklyTestE: 300,
+        weeklyPrimo: 200,
+        hcgWeekly: '3x per week (500 IU each)',
+        hcgDose: 500,
+        dailyTestE: 300 / 7,
       });
 
       useEffect(() => {
@@ -351,6 +358,94 @@
 
       const updateMetric = (metric, value) => {
         setData(prev => ({ ...prev, [metric]: value }));
+      };
+
+      const updateProtocolField = (field, value) => {
+        setData(prev => ({ ...prev, [field]: value }));
+      };
+
+      const updateLab = (index, field, value) => {
+        setData(prev => {
+          const labs = prev.labs.map((lab, i) => i === index ? { ...lab, [field]: value } : lab);
+          return { ...prev, labs };
+        });
+      };
+
+      const addLab = () => {
+        setData(prev => ({
+          ...prev,
+          labs: [...prev.labs, { name: 'New Lab', value: '', date: new Date().toISOString().split('T')[0], range: '' }]
+        }));
+      };
+
+      const removeLab = (index) => {
+        setData(prev => ({
+          ...prev,
+          labs: prev.labs.filter((_, i) => i !== index)
+        }));
+      };
+
+      const addInjection = () => {
+        setData(prev => ({
+          ...prev,
+          injections: [...prev.injections, { name: 'New Injection', dose: '', completed: false }]
+        }));
+      };
+
+      const updateInjection = (index, field, value) => {
+        setData(prev => {
+          const injections = prev.injections.map((item, i) => i === index ? { ...item, [field]: value } : item);
+          return { ...prev, injections };
+        });
+      };
+
+      const removeInjection = (index) => {
+        setData(prev => ({
+          ...prev,
+          injections: prev.injections.filter((_, i) => i !== index)
+        }));
+      };
+
+      const addSupplement = () => {
+        setData(prev => ({
+          ...prev,
+          supplements: [...prev.supplements, { name: 'New Supplement', completed: false }]
+        }));
+      };
+
+      const updateSupplement = (index, field, value) => {
+        setData(prev => {
+          const supplements = prev.supplements.map((item, i) => i === index ? { ...item, [field]: value } : item);
+          return { ...prev, supplements };
+        });
+      };
+
+      const removeSupplement = (index) => {
+        setData(prev => ({
+          ...prev,
+          supplements: prev.supplements.filter((_, i) => i !== index)
+        }));
+      };
+
+      const addMeal = () => {
+        setData(prev => ({
+          ...prev,
+          meals: [...prev.meals, { name: 'New Meal', time: '', food: '', completed: false }]
+        }));
+      };
+
+      const updateMeal = (index, field, value) => {
+        setData(prev => {
+          const meals = prev.meals.map((item, i) => i === index ? { ...item, [field]: value } : item);
+          return { ...prev, meals };
+        });
+      };
+
+      const removeMeal = (index) => {
+        setData(prev => ({
+          ...prev,
+          meals: prev.meals.filter((_, i) => i !== index)
+        }));
       };
 
       const exportData = () => {
@@ -592,23 +687,45 @@
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">🔬 Lab Results</h3>
-                <button className="btn btn-secondary" onClick={() => alert('Connect to Rythmn Health for automatic lab sync')}>Sync Labs</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn btn-secondary" onClick={addLab}>+ Add Lab</button>
+                  <button className="btn" onClick={() => alert('Connect to Rythmn Health for automatic lab sync')}>Sync Labs</button>
+                </div>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 {data.labs.map((lab, idx) => (
                   <div key={idx} className="lab-result">
-                    <div>
-                      <div className="lab-name">{lab.name}</div>
+                    <div style={{ flex: 1 }}>
+                      <input
+                        value={lab.name}
+                        onChange={(e) => updateLab(idx, 'name', e.target.value)}
+                        style={{ background: 'transparent', color: '#e0e6ed', border: 'none', borderBottom: '1px solid #2a3f5f', width: '100%' }}
+                      />
                       <div style={{ fontSize: '11px', color: '#8b95a5', marginTop: '4px' }}>
-                        Range: {lab.range}
+                        Range:
+                        <input
+                          value={lab.range}
+                          onChange={(e) => updateLab(idx, 'range', e.target.value)}
+                          style={{ background: 'transparent', color: '#8b95a5', border: 'none', width: '120px', marginLeft: '4px' }}
+                        />
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div className="lab-value">{lab.value}</div>
+                      <input
+                        value={lab.value}
+                        onChange={(e) => updateLab(idx, 'value', e.target.value)}
+                        style={{ background: 'transparent', color: '#00d4ff', fontWeight: 600, border: 'none', width: '110px', textAlign: 'right' }}
+                      />
                       <div style={{ fontSize: '11px', color: '#8b95a5', marginTop: '4px' }}>
-                        {lab.date}
+                        <input
+                          type="date"
+                          value={lab.date}
+                          onChange={(e) => updateLab(idx, 'date', e.target.value)}
+                          style={{ background: 'transparent', color: '#8b95a5', border: 'none', width: '130px' }}
+                        />
                       </div>
                     </div>
+                    <button className="btn btn-secondary" style={{ marginLeft: '8px' }} onClick={() => removeLab(idx)}>✕</button>
                   </div>
                 ))}
               </div>
@@ -668,23 +785,77 @@
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">💉 Current Protocol</h3>
+                <button className="btn btn-secondary" onClick={() => updateProtocolField('protocolEditing', !data.protocolEditing)}>
+                  {data.protocolEditing ? 'Done' : 'Edit Protocol'}
+                </button>
               </div>
-              <div style={{ lineHeight: '1.8' }}>
-                <h4 style={{ color: '#00d4ff', marginBottom: '12px', fontSize: '16px' }}>Hormones</h4>
-                <p>• Test E: 28.5mg daily (200mg/week total)</p>
-                <p>• Primobolone: 200mg weekly</p>
-                <p>• Glow Stack: 20 IU daily</p>
-                <p>• hCG: 500 IU 3x weekly</p>
-                <p>• Arimidex: 0.5mg as needed (E2 management)</p>
-                
-                <h4 style={{ color: '#00d4ff', margin: '20px 0 12px', fontSize: '16px' }}>Hair Protocol</h4>
-                <p>• Dutasteride: 0.85-1mg daily (6-7mg/week)</p>
-                <p>• Minoxidil: 5-6mg oral daily</p>
-                
-                <h4 style={{ color: '#00d4ff', margin: '20px 0 12px', fontSize: '16px' }}>Supplements</h4>
-                <p>• AM: Creatine, Electrolytes</p>
-                <p>• PM: Fish oil, Magnesium</p>
-              </div>
+              {data.protocolEditing ? (
+                <div style={{ display: 'grid', gap: '12px', marginTop: '12px' }}>
+                  <div>
+                    <div className="metric-label">Cycle Start Date</div>
+                    <input
+                      type="date"
+                      value={data.cycleStart || '2025-06-08'}
+                      onChange={(e) => updateProtocolField('cycleStart', e.target.value)}
+                      style={{ marginTop: '8px' }}
+                    />
+                  </div>
+                  <div>
+                    <div className="metric-label">Weekly Test Dose (mg)</div>
+                    <input
+                      type="number"
+                      value={data.weeklyTestE || 300}
+                      onChange={(e) => updateProtocolField('weeklyTestE', parseFloat(e.target.value) || 0)}
+                      style={{ marginTop: '8px' }}
+                    />
+                  </div>
+                  <div>
+                    <div className="metric-label">Weekly Primobolone (mg)</div>
+                    <input
+                      type="number"
+                      value={data.weeklyPrimo || 200}
+                      onChange={(e) => updateProtocolField('weeklyPrimo', parseFloat(e.target.value) || 0)}
+                      style={{ marginTop: '8px' }}
+                    />
+                  </div>
+                  <div>
+                    <div className="metric-label">hCG Frequency</div>
+                    <select
+                      value={data.hcgWeekly || '3x per week (500 IU each)'}
+                      onChange={(e) => updateProtocolField('hcgWeekly', e.target.value)}
+                      style={{ marginTop: '8px', background: 'rgba(0,0,0,0.3)', color: '#e0e6ed', border: '1px solid #2a3f5f', padding: '10px', borderRadius: '8px' }}
+                    >
+                      <option value="2x per week (250 IU)">2x per week (250 IU)</option>
+                      <option value="3x per week (500 IU)">3x per week (500 IU)</option>
+                      <option value="None">None</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div className="metric-label">hCG Single Dose (IU)</div>
+                    <input
+                      type="number"
+                      value={data.hcgDose || 500}
+                      onChange={(e) => updateProtocolField('hcgDose', parseFloat(e.target.value) || 0)}
+                      style={{ marginTop: '8px' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ lineHeight: '1.8', marginTop: '12px' }}>
+                  <h4 style={{ color: '#00d4ff', marginBottom: '12px', fontSize: '16px' }}>Hormones</h4>
+                  <p>• Test E: {(data.dailyTestE || 300 / 7).toFixed(1)}mg daily ({(data.weeklyTestE || 300)}mg/week total)</p>
+                  <p>• Primobolone: {(data.weeklyPrimo || 200)}mg weekly</p>
+                  <p>• Glow Stack: 20 IU daily</p>
+                  <p>• hCG: {data.hcgWeekly || '3x weekly'} ({data.hcgDose || 500} IU)</p>
+                  <p>• Arimidex: 0.5mg as needed (E2 management)</p>
+                  <h4 style={{ color: '#00d4ff', margin: '20px 0 12px', fontSize: '16px' }}>Hair Protocol</h4>
+                  <p>• Dutasteride: 0.85-1mg daily (6-7mg/week)</p>
+                  <p>• Minoxidil: 5-6mg oral daily</p>
+                  <h4 style={{ color: '#00d4ff', margin: '20px 0 12px', fontSize: '16px' }}>Supplements</h4>
+                  <p>• AM: Creatine, Electrolytes</p>
+                  <p>• PM: Fish oil, Magnesium</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -693,7 +864,63 @@
               <div className="card-header">
                 <h3 className="card-title">🍽️ Nutrition Tracker</h3>
               </div>
-              <p style={{ color: '#8b95a5' }}>Advanced macro tracking coming soon...</p>
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                  <div>
+                    <div className="metric-label">Meal Name</div>
+                    <input value={data.nutritionNewName || ''} onChange={(e) => updateMetric('nutritionNewName', e.target.value)} style={{ marginTop: '8px' }} />
+                  </div>
+                  <div>
+                    <div className="metric-label">Time</div>
+                    <input value={data.nutritionNewTime || ''} onChange={(e) => updateMetric('nutritionNewTime', e.target.value)} style={{ marginTop: '8px' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                  <div>
+                    <div className="metric-label">Cal</div>
+                    <input type="number" value={data.nutritionNewCal || ''} onChange={(e) => updateMetric('nutritionNewCal', e.target.value)} style={{ marginTop: '8px' }} />
+                  </div>
+                  <div>
+                    <div className="metric-label">Protein</div>
+                    <input type="number" value={data.nutritionNewProtein || ''} onChange={(e) => updateMetric('nutritionNewProtein', e.target.value)} style={{ marginTop: '8px' }} />
+                  </div>
+                  <div>
+                    <div className="metric-label">Carbs</div>
+                    <input type="number" value={data.nutritionNewCarbs || ''} onChange={(e) => updateMetric('nutritionNewCarbs', e.target.value)} style={{ marginTop: '8px' }} />
+                  </div>
+                  <div>
+                    <div className="metric-label">Fat</div>
+                    <input type="number" value={data.nutritionNewFat || ''} onChange={(e) => updateMetric('nutritionNewFat', e.target.value)} style={{ marginTop: '8px' }} />
+                  </div>
+                </div>
+                <button className="btn" onClick={() => {
+                  const meals = [...(data.meals || []), {
+                    name: data.nutritionNewName || 'Meal',
+                    time: data.nutritionNewTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    food: `${data.nutritionNewCal || 0} cal / P:${data.nutritionNewProtein || 0} / C:${data.nutritionNewCarbs || 0} / F:${data.nutritionNewFat || 0}`,
+                    completed: false,
+                  }];
+                  updateMetric('meals', meals);
+                  updateMetric('nutritionNewName', '');
+                  updateMetric('nutritionNewTime', '');
+                  updateMetric('nutritionNewCal', '');
+                  updateMetric('nutritionNewProtein', '');
+                  updateMetric('nutritionNewCarbs', '');
+                  updateMetric('nutritionNewFat', '');
+                }}>Add Meal</button>
+
+                <div className="checkbox-list">
+                  {(data.meals || []).slice(0, 20).map((item, idx) => (
+                    <div key={idx} className={`checkbox-item ${item.completed ? 'completed' : ''}`} onClick={() => toggleItem('meals', idx)}>
+                      <div className={`checkbox ${item.completed ? 'checked' : ''}`}>{item.completed && '✓'}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '500' }}>{item.name} — {item.time}</div>
+                        <div style={{ fontSize: '12px', color: '#8b95a5' }}>{item.food}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -702,7 +929,61 @@
               <div className="card-header">
                 <h3 className="card-title">🏋️ Training Log</h3>
               </div>
-              <p style={{ color: '#8b95a5' }}>Workout tracking and progression coming soon...</p>
+              <div style={{ display: 'grid', gap: '12px' }}>
+                <div>
+                  <div className="metric-label">Exercise Name</div>
+                  <input value={data.trainingNewName || ''} onChange={(e) => updateMetric('trainingNewName', e.target.value)} style={{ marginTop: '8px' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+                  <div>
+                    <div className="metric-label">Sets</div>
+                    <input type="number" value={data.trainingNewSets || 3} onChange={(e) => updateMetric('trainingNewSets', parseInt(e.target.value || '0', 10))} style={{ marginTop: '8px' }} />
+                  </div>
+                  <div>
+                    <div className="metric-label">Reps</div>
+                    <input type="number" value={data.trainingNewReps || 10} onChange={(e) => updateMetric('trainingNewReps', parseInt(e.target.value || '0', 10))} style={{ marginTop: '8px' }} />
+                  </div>
+                  <div>
+                    <div className="metric-label">Weight</div>
+                    <input type="number" value={data.trainingNewWeight || ''} onChange={(e) => updateMetric('trainingNewWeight', parseFloat(e.target.value || '0'))} style={{ marginTop: '8px' }} />
+                  </div>
+                  <div>
+                    <div className="metric-label">Unit</div>
+                    <select value={data.trainingNewUnit || 'lbs'} onChange={(e) => updateMetric('trainingNewUnit', e.target.value)} style={{ marginTop: '8px', background: 'rgba(0,0,0,0.3)', color: '#e0e6ed', border: '1px solid #2a3f5f', padding: '10px', borderRadius: '8px' }}>
+                      <option value="lbs">lbs</option>
+                      <option value="kg">kg</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div className="metric-label">RPE</div>
+                    <input type="number" value={data.trainingNewRpe || ''} onChange={(e) => updateMetric('trainingNewRpe', parseFloat(e.target.value || '0'))} style={{ marginTop: '8px' }} />
+                  </div>
+                </div>
+                <button className="btn" onClick={() => {
+                  const meals = [...(data.meals || []), {
+                    name: data.trainingNewName || 'Workout',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    food: `${data.trainingNewSets || 0} sets x ${data.trainingNewReps || 0} @ ${data.trainingNewWeight || 0} ${data.trainingNewUnit || 'lbs'}`,
+                    completed: false,
+                  }];
+                  updateMetric('meals', meals);
+                  updateMetric('trainingNewName', '');
+                  updateMetric('trainingNewWeight', '');
+                  updateMetric('trainingNewRpe', '');
+                }}>Log Exercise</button>
+
+                <div className="checkbox-list">
+                  {(data.meals || []).slice(0, 20).map((item, idx) => (
+                    <div key={idx} className={`checkbox-item ${item.completed ? 'completed' : ''}`} onClick={() => toggleItem('meals', idx)}>
+                      <div className={`checkbox ${item.completed ? 'checked' : ''}`}>{item.completed && '✓'}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '500' }}>{item.name} — {item.time}</div>
+                        <div style={{ fontSize: '12px', color: '#8b95a5' }}>{item.food}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -711,7 +992,19 @@
               <div className="card-header">
                 <h3 className="card-title">📈 Forecast</h3>
               </div>
-              <p style={{ color: '#8b95a5' }}>AI-powered predictions and trends coming soon...</p>
+              <p style={{ color: '#8b95a5' }}>Forecast uses your logged data. Keep logging weight, meals, and training to generate trends.</p>
+              <div className="grid" style={{ marginTop: '16px' }}>
+                <div className="card">
+                  <div className="card-header"><h3 className="card-title">Weight</h3></div>
+                  <div className="metric-value">{data.weight}</div>
+                  <div className="metric-label">lbs</div>
+                </div>
+                <div className="card">
+                  <div className="card-header"><h3 className="card-title">Steps</h3></div>
+                  <div className="metric-value">{Number.isFinite(data.steps) ? data.steps.toLocaleString() : '0'}</div>
+                  <div className="metric-label">target: 15-20k steps</div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -720,7 +1013,52 @@
               <div className="card-header">
                 <h3 className="card-title">✅ Daily Checklist</h3>
               </div>
-              <p style={{ color: '#8b95a5' }}>Comprehensive daily checklist coming soon...</p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <input placeholder="New item" value={data.newChecklistItem || ''} onChange={(e) => updateMetric('newChecklistItem', e.target.value)} />
+                <button className="btn" onClick={() => {
+                  const value = (data.newChecklistItem || '').trim();
+                  if (!value) return;
+                  const items = [...(data.supplements || []), { name: value, completed: false }];
+                  updateMetric('supplements', items);
+                  updateMetric('newChecklistItem', '');
+                }}>+ Add</button>
+              </div>
+              <div className="checkbox-list">
+                {(data.supplements || []).map((item, idx) => (
+                  <div key={idx} className={`checkbox-item ${item.completed ? 'completed' : ''}`} onClick={() => toggleItem('supplements', idx)}>
+                    <div className={`checkbox ${item.completed ? 'checked' : ''}`}>{item.completed && '✓'}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '500' }}>{item.name}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+                  </div>
+                  <div className="metric-value">{String(data.steps).length ? data.steps.toLocaleString() : '0'}</div>
+                  <div className="metric-label">target: 15-20k steps</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'checklist' && (
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title">✅ Daily Checklist</h3>
+              </div>
+              <div className="checkbox-list">
+                {(data.supplements || []).map((item, idx) => (
+                  <div key={idx} className={`checkbox-item ${item.completed ? 'completed' : ''}`} onClick={() => toggleItem('supplements', idx)}>
+                    <div className={`checkbox ${item.completed ? 'checked' : ''}`}>{item.completed && '✓'}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '500' }}>{item.name}</div>
+                    </div>
+                  </div>
+                ))}
+                <button className="btn btn-secondary" style={{ marginTop: '8px' }} onClick={addSupplement}>Add Checklist Item</button>
+              </div>
             </div>
           )}
 
