@@ -1035,32 +1035,6 @@
               </div>
             </div>
           )}
-                  </div>
-                  <div className="metric-value">{String(data.steps).length ? data.steps.toLocaleString() : '0'}</div>
-                  <div className="metric-label">target: 15-20k steps</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'checklist' && (
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title">✅ Daily Checklist</h3>
-              </div>
-              <div className="checkbox-list">
-                {(data.supplements || []).map((item, idx) => (
-                  <div key={idx} className={`checkbox-item ${item.completed ? 'completed' : ''}`} onClick={() => toggleItem('supplements', idx)}>
-                    <div className={`checkbox ${item.completed ? 'checked' : ''}`}>{item.completed && '✓'}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '500' }}>{item.name}</div>
-                    </div>
-                  </div>
-                ))}
-                <button className="btn btn-secondary" style={{ marginTop: '8px' }} onClick={addSupplement}>Add Checklist Item</button>
-              </div>
-            </div>
-          )}
 
           <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button className="btn" onClick={exportData}>📥 Export Data</button>
